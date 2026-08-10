@@ -1,0 +1,71 @@
+ 我想找一个开源项目，实现了微服务的设计与拆分，同时支持AI规则检验设计合理性，不需要非常复杂的UML建模能力，简单上手。你能帮我做一下深入调研，有没有这样的开源项目吗？我的目的是，想基于这个开源项目，进行比赛，选手在这个项目的基础上再去开发一些增强功能。
+
+这是个值得深入调研的问题。我联网检索一下微服务设计/拆分 + AI 规则校验类的开源项目。
+
+⏺ Web Search("open source microservice decomposition design tool AI validation architecture")
+Did 1 search in 9s
+
+⏺ Web Search("microservices architecture design open source tool domain decomposition modeling simple github")
+Did 1 search in 7s
+
+⏺ Web Search("architecture as code diagram validation rules AI open source Structurizr C4 fitness functions")
+Did 1 search in 9s
+
+⏺ Web Search("monolith to microservices decomposition tool open source mono2micro service cutter")
+Did 1 search in 9s
+
+搜索到几个方向。有一个非常契合的候选我需要核实一下——Context Mapper(DDD 微服务建模 DSL)。我并行核实几个关键开源仓库的实况。
+
+⏺ Web Search("Context Mapper DSL DDD bounded context microservice decomposition open source github")
+Did 1 search in 11s
+
+⏺ Fetch(https://github.com/ContextMapper/context-mapper-dsl)
+Received 368.1KB (200 OK)
+
+⏺ Fetch(https://github.com/DevOps-MBSE/AaC)
+Received 328.8KB (200 OK)
+
+调研完成。结论是:有几个高度契合的开源项目,而且它们的"短板"恰好就是你想让选手补强的方向(AI 校验设计合理性),非常适合作为比赛底座。
+
+三个最契合的候选
+
+┌────────────────────────┬─────────────────────────┬──────────────────┬─────────────┬────────────────────────────────────────────────────┐
+│          项目          │      语言/License       │       定位       │  上手难度   │                    与需求契合点                    │
+├────────────────────────┼─────────────────────────┼──────────────────┼─────────────┼────────────────────────────────────────────────────┤
+│                        │ Java(Xtext              │ DDD 上下文映射 + │ 中(装 VS    │ 用简单 CML 文本 DSL 建模,不需 UML;内置集成 Service │
+│ Context Mapper ⭐推荐  │ DSL)/Apache-2.0,262★    │  服务拆分        │ Code        │  Cutter 自动算拆分建议;可生成图/服务契约           │
+│                        │                         │                  │ 插件即可)   │                                                    │
+├────────────────────────┼─────────────────────────┼──────────────────┼─────────────┼────────────────────────────────────────────────────┤
+│ AaC                    │                         │ YAML 架构建模 +  │ 低(pip      │ 最贴你的 Python 栈;aac check                       │
+│ (Architecture-as-Code) │ Python/MIT,提交1288次   │ 校验 + 插件系统  │ install     │ 已有校验框架;插件机制天然适合挂一个"AI             │
+│                        │                         │                  │ aac)        │ 规则校验"插件                                      │
+├────────────────────────┼─────────────────────────┼──────────────────┼─────────────┼────────────────────────────────────────────────────┤
+│ Structurizr DSL / C4   │ Java+多语言/生态大      │ 架构即代码(C4    │ 低-中       │ 纯文本模型,AI                                      │
+│                        │                         │ 模型)            │             │ 极易解析,天然可做"架构漂移/规则违规"检测           │
+└────────────────────────┴─────────────────────────┴──────────────────┴─────────────┴────────────────────────────────────────────────────┘
+
+其余像 Service Cutter、IBM Mono2Micro、学术界的 S-Quality / MicroValid 属于偏研究的拆分/校验引擎,较重、上手门槛高,不建议直接做底座(但可作为选手拆分算法的参考)。
+
+我的推荐:Context Mapper 为主底座
+
+理由:
+
+1. 正中需求——它就是"微服务设计 + 服务拆分"工具,用 CML 文本 DSL(不是复杂 UML)描述 Bounded Context 及其关系,再一键生成上下文图、PlantUML、(微)服务契约 MDSL,还内置 Service Cutter 算拆分方案。
+2. 留白刚好给选手发挥——官方在"设计合理性校验"上很弱(只做语法/生成)。这正是比赛可增强的核心题:选手基于 CML 模型接入 LLM,做耦合度/内聚度/DDD 反模式/服务边界合理性的 AI 规则检验与改进建议。
+3. Apache-2.0,可自由 fork 二次开发;有 examples 仓库和论文,资料齐全。
+
+如果你更看重"简单 + Python + 好扩展",选 AaC:选手写一个 aac 校验插件调用 AI 即可,门槛最低,和你团队的 Python 栈一致。
+
+比赛设计上的对应关系
+
+- 底座已具备:模型化描述服务/边界(DSL/YAML)、自动拆分建议、图与契约生成。
+- 交给选手增强:① 接入 AI 对设计做规则化合理性校验(边界划分、耦合、DDD 反模式、命名/契约一致性);② 生成改进建议/重构方案;③ 校验结果可视化。
+
+关键链接:
+- Context Mapper 官网 https://contextmapper.org ·仓库 https://github.com/ContextMapper/context-mapper-dsl ·示例 https://github.com/ContextMapper/context-mapper-examples
+- AaC https://github.com/DevOps-MBSE/AaC
+- Structurizr https://structurizr.com ·https://github.com/structurizr
+
+要不要我进一步帮你:(a) 把 Context Mapper 跑起来、写个最小 CML 示例并验证"拆分建议"能出;或 (b) 起草一份"选手基于该底座做 AI 设计校验"的赛题说明与评分点?告诉我方向即可。
+
+Sources: Context Mapper ·context-mapper-dsl ·AaC ·Structurizr as-code ·Service Cutter/Mono2Micro 综述
