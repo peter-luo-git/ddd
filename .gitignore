@@ -1,7 +1,6 @@
 # 忽略指定三个目录
 .claude/
 ddd-toolbox/
-examples/
 
 # 可选补充通用忽略（适配Go/Node常见产物，按需保留）
 **/node_modules/

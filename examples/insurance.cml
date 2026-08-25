@@ -1,0 +1,159 @@
+/*
+ * Insurance 示例（改编自 Context Mapper 官方样例）。
+ * 这个例子包含多个 Bounded Context、上下文关系、聚合与用例，
+ * 足以让 "Service Cutter 拆分建议" 和 "上下文图/PlantUML 生成" 产出有意义的结果。
+ *
+ * 体验重点：
+ *   1) 在 SampleContext 里改改关系（[U]/[D]/[OHS]/[ACL] 等模式），看图怎么变
+ *   2) 右键 -> Context Mapper 生成，观察拆分建议 / 图 / MDSL 契约
+ */
+ContextMap InsuranceContextMap {
+	type = SYSTEM_LANDSCAPE
+	state = TO_BE
+
+	contains CustomerManagementContext
+	contains CustomerSelfServiceContext
+	contains PolicyManagementContext
+	contains RiskManagementContext
+
+	CustomerSelfServiceContext [D,C]<-[U,S] CustomerManagementContext {
+		implementationTechnology = "RESTful HTTP"
+		exposedAggregates = Customers
+	}
+
+	CustomerManagementContext [D,ACL]<-[U,OHS,PL] PolicyManagementContext {
+		implementationTechnology = "RESTful HTTP"
+		exposedAggregates = Policies
+	}
+
+	RiskManagementContext [P]<->[P] PolicyManagementContext {
+		implementationTechnology = "Messaging"
+	}
+}
+
+/* ---------- Bounded Contexts ---------- */
+
+BoundedContext CustomerManagementContext implements CustomerManagementDomain {
+	type = FEATURE
+	domainVisionStatement = "管理客户主数据（姓名、地址、联系方式）。"
+	implementationTechnology = "Java, Spring"
+	responsibilities = "Customers", "Addresses"
+
+	Aggregate Customers {
+		Entity Customer {
+			aggregateRoot
+			String customerId
+			String firstname
+			String lastname
+			- List<Address> addresses
+		}
+		Entity Address {
+			String street
+			int postalCode
+			String city
+		}
+	}
+}
+
+BoundedContext CustomerSelfServiceContext implements CustomerManagementDomain {
+	type = APPLICATION
+	domainVisionStatement = "面向客户的自助门户（改地址、查保单）。"
+	implementationTechnology = "Java, JSF"
+
+	Aggregate Users {
+		Entity User {
+			aggregateRoot
+			String userId
+			String password
+			- Customer customer
+		}
+	}
+}
+
+BoundedContext PolicyManagementContext implements PolicyManagementDomain {
+	type = FEATURE
+	domainVisionStatement = "承保、保单生命周期与理赔管理。"
+	implementationTechnology = "Java, Spring"
+	responsibilities = "Policies", "Claims"
+
+	Aggregate Policies {
+		Entity Policy {
+			aggregateRoot
+			String policyId
+			- Customer client
+			- PolicyType type
+			BigDecimal premium
+		}
+		enum PolicyType {
+			LIFE, HEALTH, CAR, HOME
+		}
+	}
+
+	Aggregate Claims {
+		Entity Claim {
+			aggregateRoot
+			String claimId
+			- Policy policy
+			BigDecimal amount
+			Date filedAt
+		}
+	}
+}
+
+BoundedContext RiskManagementContext implements RiskManagementDomain {
+	type = FEATURE
+	domainVisionStatement = "风险评估与保费定价规则。"
+	implementationTechnology = "Python"
+
+	Aggregate RiskProfiles {
+		Entity RiskProfile {
+			aggregateRoot
+			String profileId
+			- Customer customer
+			int score
+		}
+	}
+}
+
+/* ---------- Domain & Subdomains ---------- */
+
+Domain InsuranceDomain {
+	Subdomain CustomerManagementDomain {
+		type = CORE_DOMAIN
+		domainVisionStatement = "客户主数据是保险业务的核心。"
+	}
+	Subdomain PolicyManagementDomain {
+		type = CORE_DOMAIN
+		domainVisionStatement = "保单与理赔是核心收入来源。"
+	}
+	Subdomain RiskManagementDomain {
+		type = SUPPORTING_DOMAIN
+		domainVisionStatement = "风险与定价支撑承保决策。"
+	}
+}
+
+/* ---------- Use Cases（供 Service Cutter 计算内聚/耦合） ---------- */
+
+UseCase UC_CreateCustomer {
+	actor = "Insurance Employee"
+	interactions = create a "Customer"
+	benefit = "以便后续开展保单业务"
+}
+
+UseCase UC_UpdateAddress {
+	actor = "Customer"
+	interactions = update an "Address" for a "Customer"
+	benefit = "客户可自助维护地址"
+}
+
+UseCase UC_IssuePolicy {
+	actor = "Insurance Employee"
+	interactions = create a "Policy" for a "Customer"
+	benefit = "完成承保"
+}
+
+UseCase UC_FileClaim {
+	actor = "Customer"
+	interactions = create a "Claim" for a "Policy"
+	benefit = "客户可发起理赔"
+}

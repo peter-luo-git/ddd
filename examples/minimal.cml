@@ -1,0 +1,20 @@
+/*
+ * 最小可用 CML 示例 —— 用来第一次验证扩展是否正常工作。
+ * 打开本文件后，右键应能看到 "Context Mapper" 相关的生成菜单。
+ */
+ContextMap MinimalMap {
+	contains SampleContext
+
+	SampleContext
+}
+
+BoundedContext SampleContext {
+	Module sample {
+		Aggregate SampleAggregate {
+			Entity SampleEntity {
+				aggregateRoot
+				String name
+			}
+		}
+	}
+}
