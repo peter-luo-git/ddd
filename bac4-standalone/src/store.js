@@ -146,6 +146,23 @@ const useStore = create((set, get) => ({
       selectedElement: null, selectedEdge: null,
     });
   },
+  // 加载非 C4 视图（事件风暴/领域故事按 board 存放；限界上下文画布走独立的 bcCanvases）的内置示例
+  loadBoardExample: (viewId, data) => {
+    if (viewId === 'bounded-context') {
+      const bcCanvases = data.bcCanvases || [];
+      set({ bcCanvases, selectedBcId: bcCanvases[0]?.id || null, currentView: 'bounded-context' });
+      return;
+    }
+    const elements = data.elements || [];
+    const relationships = data.relationships || [];
+    const boards = { ...get().snapshotBoards(), [viewId]: { elements, relationships, drillPath: [] } };
+    set({
+      boards, currentView: viewId,
+      elements, relationships, drillPath: [], currentLevel: LEVELS[0],
+      selectedElement: null, selectedEdge: null,
+    });
+  },
+
   getFullState: () => ({ metadata: get().metadata, currentView: get().currentView, boards: get().snapshotBoards(), bcCanvases: get().bcCanvases }),
   loadFullState: (data) => {
     const boards = data.boards || {};

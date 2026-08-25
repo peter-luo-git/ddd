@@ -7,9 +7,10 @@ import { exportToStructurizr, importFromStructurizr } from '../utils/structurizr
 import Breadcrumb from './Breadcrumb';
 import { EXAMPLES } from '../examples';
 import { listProjects, getProject, createProject, updateProject, deleteProject } from '../utils/api';
+import { PHASES } from '../config/views';
 
 const Header = () => {
-  const { metadata, setMetadata, exportModel, importModel, clearAll, getAllElements, updateElement, relationships, drillInto, loadFullState } = useStore();
+  const { metadata, setMetadata, exportModel, importModel, clearAll, getAllElements, updateElement, relationships, drillInto, loadFullState, loadBoardExample } = useStore();
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
   const [showExampleMenu, setShowExampleMenu] = useState(false);
@@ -103,10 +104,19 @@ const Header = () => {
 
   // —— 示例 —— //
   const loadExample = (ex) => {
-    if (getAllElements().length > 0 && !window.confirm('加载示例会替换当前画布内容，确定继续吗？')) return;
-    importModel(ex.model);
-    focusFirstSystem();
-    setCurrentProjectId(null);
+    const view = ex.view || 'c4';
+    const s = useStore.getState();
+    const hasContent = view === 'bounded-context'
+      ? s.bcCanvases.length > 0
+      : (view === s.currentView ? s.elements.length > 0 : (s.boards[view]?.elements?.length > 0));
+    if (hasContent && !window.confirm('加载示例会替换对应视图的内容，确定继续吗？')) return;
+    if (view === 'c4') {
+      importModel(ex.model);
+      focusFirstSystem();
+      setCurrentProjectId(null);
+    } else {
+      loadBoardExample(view, ex.model);
+    }
     setShowExampleMenu(false);
   };
 
@@ -232,14 +242,23 @@ const Header = () => {
                 <BookOpen className="w-4 h-4" /> 示例
               </button>
               {showExampleMenu && (
-                <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                <div className="absolute right-0 mt-2 w-80 max-h-[70vh] overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                   <div className="py-1">
-                    {EXAMPLES.map((ex) => (
-                      <button key={ex.id} onClick={() => loadExample(ex)} className="w-full text-left px-4 py-2 hover:bg-gray-100">
-                        <div className="text-sm font-medium text-gray-800">{ex.name}</div>
-                        <div className="text-xs text-gray-500">{ex.description}</div>
-                      </button>
-                    ))}
+                    {PHASES.map((phase) => {
+                      const items = EXAMPLES.filter((ex) => phase.views.includes(ex.view || 'c4'));
+                      if (items.length === 0) return null;
+                      return (
+                        <div key={phase.id}>
+                          <div className="px-4 pt-2 pb-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">{phase.label}</div>
+                          {items.map((ex) => (
+                            <button key={ex.id} onClick={() => loadExample(ex)} className="w-full text-left px-4 py-2 hover:bg-gray-100">
+                              <div className="text-sm font-medium text-gray-800">{ex.name}</div>
+                              <div className="text-xs text-gray-500">{ex.description}</div>
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

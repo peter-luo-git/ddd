@@ -1,0 +1,28 @@
+services:
+  backend:
+    build: ./backend
+    container_name: ddd-backend
+    restart: unless-stopped
+    volumes:
+      - ddd-backend-data:/data
+    environment:
+      # database.py 支持这个 env var 覆盖默认路径，固定到卷里以便容器重建后数据不丢
+      - DDD_DB_PATH=/data/data.db
+    # 先只绑本机回环，等确定对外端口后再决定怎么暴露（见 README/对话里的说明）
+    ports:
+      - "127.0.0.1:8010:8000"
+
+  frontend:
+    build: ./bac4-standalone
+    container_name: ddd-frontend
+    restart: unless-stopped
+    environment:
+      # 对外通过 nginx (Basic Auth) 代理到 7233，浏览器实际请求走这个源
+      - VITE_API_BASE=http://139.198.39.227:7233
+    ports:
+      - "127.0.0.1:5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  ddd-backend-data:
